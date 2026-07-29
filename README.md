@@ -26,8 +26,8 @@
 ### 1. Installation
 
 ```bash
-git clone https://github.com/your-org/AI-SOC-Agent.git
-cd AI-SOC-Agent
+git clone https://github.com/Abhy02/Automated-SIEM-Triage-Agent.git
+cd Automated-SIEM-Triage-Agent
 chmod +x install.sh
 ./install.sh
 ```
@@ -69,6 +69,65 @@ AI-SOC-Agent/
 ```
 
 ---
+
+---
+
+## 🛠️ Technology Stack
+
+| Category | Technology |
+|-----------|------------|
+| **Backend** | Python, Flask |
+| **Frontend** | HTML5, CSS3, JavaScript, Bootstrap 5 |
+| **AI Engine** | Ollama (Llama 3.2) |
+| **SIEM** | Wazuh |
+| **Search Engine** | OpenSearch |
+| **Database** | SQLite |
+| **Threat Intelligence** | VirusTotal, AbuseIPDB, AlienVault OTX |
+| **Authentication** | Flask Login, RBAC |
+| **Reporting** | ReportLab (PDF) |
+| **Deployment** | Docker, Docker Compose |
+| **Operating System** | Kali Linux / Ubuntu |
+
+
+---
+
+## 🌟 Project Highlights
+
+- ✅ AI-powered SIEM Alert Triage
+- ✅ AI Investigation Console
+- ✅ AI Security Copilot
+- ✅ MITRE ATT&CK Mapping
+- ✅ Threat Intelligence Enrichment
+- ✅ ReportLab PDF Reports
+- ✅ Global Search Engine
+- ✅ Role-Based Access Control
+- ✅ Demo Mode
+- ✅ First-Run Setup Wizard
+
+
+---
+
+## 🚀 Future Roadmap
+
+- [ ] Multi-tenancy Support
+- [ ] SOAR Playbook Automation
+- [ ] Slack & Microsoft Teams Integration
+- [ ] Email Alert Notifications
+- [ ] Kubernetes Deployment
+- [ ] Elasticsearch Compatibility
+- [ ] Multi-LLM Support
+- [ ] Live WebSocket Dashboard
+
+
+---
+
+## ⚠️ Disclaimer
+
+This project is intended for educational, research, and authorized security operations purposes only. Always obtain proper authorization before performing security testing or investigations on any systems.
+
+
+
+
 
 <h2 align="center">📸 Application Screenshots</h2>
 
