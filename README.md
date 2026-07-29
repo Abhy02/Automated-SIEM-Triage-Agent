@@ -70,11 +70,6 @@ AI-SOC-Agent/
 
 ---
 
-## 📄 License
-
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
-
 <h2 align="center">📸 Application Screenshots</h2>
 
 <p align="center">
@@ -100,3 +95,48 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 <p align="center">
   <img src="screenshots/user-management.png" width="75%">
 </p>
+
+---
+
+# 🏗️ AI SOC Enterprise – End-to-End System Architecture
+
+The following diagram illustrates the complete end-to-end workflow of the AI SOC Enterprise platform, from security event collection through AI-powered investigation, threat intelligence enrichment, and automated incident reporting.
+
+<p align="center">
+  <a href="docs/architecture.png">
+    <img src="docs/architecture.png"
+         alt="AI SOC Enterprise Architecture Diagram"
+         width="100%">
+  </a>
+</p>
+
+---
+
+## 📂 Project Architecture
+
+```text
+AI-SOC-Agent/
+├── ai/                      # AI LLM prompt builder & response parsers
+├── auth/                    # RBAC models, SQLite authentication & setup wizard
+├── database/                # SQLite database initialization
+├── dashboard/               # Dashboard routes & REST APIs
+├── mitre/                   # MITRE ATT&CK mapping engine
+├── parser/                  # Alert parser & risk scoring
+├── reports/                 # JSON report cache & PDF generation
+├── services/                # Investigation engine, search & AI services
+├── threat_intel/            # VirusTotal, AbuseIPDB & AlienVault OTX
+├── templates/               # Jinja2 HTML templates
+├── static/                  # CSS, JavaScript & assets
+├── web_app.py               # Flask application entry point
+├── config.py                # Configuration loader
+├── install.sh               # Automated installer
+├── docker-compose.yml       # Docker deployment
+├── .env.example             # Environment template
+└── README.md                # Project documentation
+```
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
