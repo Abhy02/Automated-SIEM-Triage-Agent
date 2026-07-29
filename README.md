@@ -75,9 +75,28 @@ AI-SOC-Agent/
 Distributed under the **MIT License**. See `LICENSE` for more information.
 
 
-<h2>📸 Screenshots</h2>
+<h2 align="center">📸 Application Screenshots</h2>
 
 <p align="center">
-  <img src="screenshots/1.png" width="48%">
-  <img src="screenshots/2.png" width="48%">
+  <img src="screenshots/login-page.png" width="48%">
+  <img src="screenshots/dashboard.png" width="48%">
+</p>
+
+<p align="center">
+  <img src="screenshots/investigation-console.png" width="48%">
+  <img src="screenshots/ai-copilot.png" width="48%">
+</p>
+
+<p align="center">
+  <img src="screenshots/threat-intelligence.png" width="48%">
+  <img src="screenshots/mitre-mapping.png" width="48%">
+</p>
+
+<p align="center">
+  <img src="screenshots/incident-report.png" width="48%">
+  <img src="screenshots/settings.png" width="48%">
+</p>
+
+<p align="center">
+  <img src="screenshots/user-management.png" width="75%">
 </p>
