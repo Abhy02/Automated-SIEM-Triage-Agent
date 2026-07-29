@@ -73,3 +73,11 @@ AI-SOC-Agent/
 ## 📄 License
 
 Distributed under the **MIT License**. See `LICENSE` for more information.
+
+
+<h2>📸 Screenshots</h2>
+
+<p align="center">
+  <img src="screenshots/1.png" width="48%">
+  <img src="screenshots/2.png" width="48%">
+</p>
