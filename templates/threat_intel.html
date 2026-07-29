@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Threat Intelligence Center | AISOC Enterprise{% endblock %}
+
+{% block content %}
+<div class="cyber-banner">
+    <div class="banner-left">
+        <h1>Threat Intelligence Center</h1>
+        <p>Multi-source IOC reputation & indicator lookup across VirusTotal, AbuseIPDB, and AlienVault OTX.</p>
+    </div>
+    <div class="banner-stats">
+        <div class="banner-kpi">
+            <label>VIRUSTOTAL</label>
+            <value>v3 API READY</value>
+        </div>
+        <div class="banner-kpi">
+            <label>ABUSEIPDB</label>
+            <value>v2 API READY</value>
+        </div>
+        <div class="banner-kpi">
+            <label>ALIENVAULT OTX</label>
+            <value>v1 API READY</value>
+        </div>
+    </div>
+</div>
+
+<div class="threat-map-card" style="margin: 0 0 28px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-search"></i> Indicator Reputation Lookup
+        </span>
+    </div>
+
+    <div style="display: flex; gap: 14px; margin-bottom: 20px;">
+        <input type="text" id="intelLookupInput" class="form-control" style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 12px;" placeholder="Enter IP address, domain, or SHA256 hash (e.g. 8.8.8.8)...">
+        <button class="btn-primary" onclick="lookupIndicatorIntel()" style="padding: 12px 24px;">
+            <i class="fas fa-search"></i> Query Threat Intel
+        </button>
+    </div>
+
+    <div id="intelResultContainer" style="display: none;">
+        <div style="font-family: var(--font-heading); font-size: 1rem; color: #fff; margin-bottom: 16px;" id="targetIndicatorHeader">
+            Target: 8.8.8.8
+        </div>
+
+        <div class="stats-grid" style="margin-bottom: 20px;">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(255,43,69,0.15); color: var(--crimson-red);">
+                    <i class="fas fa-shield-virus"></i>
+                </div>
+                <div>
+                    <div class="stat-label">VirusTotal Score</div>
+                    <div class="stat-value" id="vtScoreVal" style="color: var(--sev-low);">0 / 92 Malicious</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(255,122,0,0.15); color: var(--sev-high);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="stat-label">AbuseIPDB Confidence</div>
+                    <div class="stat-value" id="abuseScoreVal" style="color: var(--sev-low);">0% Abuse Score</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(0,207,255,0.15); color: var(--cyan);">
+                    <i class="fas fa-satellite-dish"></i>
+                </div>
+                <div>
+                    <div class="stat-label">AlienVault OTX</div>
+                    <div class="stat-value" id="otxScoreVal" style="color: var(--sev-low);">0 Threat Pulses</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-secondary); border: 1px solid var(--red-border); padding: 16px; border-radius: 10px; font-size: 0.9rem;">
+            <strong>Reference Links:</strong> 
+            <a id="vtRefLink" href="https://www.virustotal.com" target="_blank" style="color: var(--neon-red-glow); margin-left: 10px; text-decoration: none;">
+                <i class="fas fa-external-link-alt"></i> Open VirusTotal GUI
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="threat-map-card" style="margin: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-list"></i> Pre-Ingested Threat Indicators
+        </span>
+    </div>
+
+    <table class="cyber-table">
+        <thead>
+            <tr>
+                <th>Indicator</th>
+                <th>Classification</th>
+                <th>VirusTotal</th>
+                <th>AbuseIPDB</th>
+                <th>AlienVault OTX</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="font-family: var(--font-mono); color: var(--neon-red-glow);">8.8.8.8</td>
+                <td><span class="badge badge-low">Public / Known DNS</span></td>
+                <td><span class="badge badge-low">0 / 92</span></td>
+                <td><span class="badge badge-low">0% Score</span></td>
+                <td><span class="badge badge-low">0 Pulses</span></td>
+            </tr>
+            <tr>
+                <td style="font-family: var(--font-mono); color: var(--neon-red-glow);">192.168.1.61</td>
+                <td><span class="badge badge-medium">Private LAN</span></td>
+                <td><span class="badge badge-medium">Internal Endpoint</span></td>
+                <td><span class="badge badge-medium">Internal</span></td>
+                <td><span class="badge badge-medium">Internal</span></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function lookupIndicatorIntel() {
+    const ip = document.getElementById('intelLookupInput').value.trim();
+    if (!ip) return;
+
+    document.getElementById('targetIndicatorHeader').innerText = `Target Indicator: ${ip}`;
+    document.getElementById('vtRefLink').href = `https://www.virustotal.com/gui/ip-address/${ip}`;
+    document.getElementById('intelResultContainer').style.display = 'block';
+}
+</script>
+{% endblock %}

@@ -1,6 +1,45 @@
-venv/
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+.env/
 .env
-.idea/
+
+# Flask
+instance/
+
+# IDE
 .vscode/
+.idea/
+
+# Logs
+*.log
+
+# SQLite
+*.db
+*.sqlite3
+
+# PDF Reports
+reports/*.pdf
+Demo reports/*.pdf
+
+# Wazuh
+ossec.log
+
+# Secrets
+config/secrets.py
+*.pem
+*.key
+
+# macOS
+.DS_Store
+
+# Linux
+*.swp
+wazuh-docker/
+reports/cache/
+reports/pdf/

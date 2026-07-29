@@ -1,0 +1,173 @@
+/*=============================================================
+    AISOC ENTERPRISE LOGIN - RED CYBER EDITION
+==============================================================*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    --bg-matte:#070709;
+    --bg-card:rgba(18, 18, 18, 0.82);
+    --maroon-deep:#32080B;
+    --crimson-red:#FF2B45;
+    --cyber-red:#E50914;
+    --neon-red-glow:#FF4D5A;
+    --text-soft:#F6F6F6;
+    --text-muted:#A1A1AA;
+    --red-border:rgba(255, 43, 69, 0.35);
+}
+
+*, *::before, *::after {
+    margin: 0; padding: 0; box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-matte);
+    background-image: 
+        radial-gradient(ellipse at 50% 20%, var(--maroon-deep) 0%, transparent 65%),
+        linear-gradient(to bottom, #070709, #0B0B0E);
+    color: var(--text-soft);
+    font-family: "Inter", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Circuit Background Pattern */
+body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 43, 69, 0.12) 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.5;
+}
+
+/* Red Laser Beam Animation */
+.laser-beam {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--crimson-red), var(--neon-red-glow), transparent);
+    box-shadow: 0 0 25px var(--neon-red-glow);
+    animation: laserScan 4s ease-in-out infinite;
+}
+
+@keyframes laserScan {
+    0% { top: 0%; opacity: 0; }
+    50% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+
+.login-card {
+    width: min(440px, 90%);
+    background: var(--bg-card);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--red-border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(255, 43, 69, 0.2);
+    position: relative;
+    z-index: 10;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.shield-logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, var(--crimson-red), var(--maroon-deep));
+    border: 1px solid var(--neon-red-glow);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #fff;
+    box-shadow: 0 0 25px rgba(255, 43, 69, 0.4);
+}
+
+.login-header h1 {
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.login-header p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.form-control {
+    width: 100%;
+    background: rgba(10, 10, 14, 0.85);
+    border: 1px solid var(--red-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--crimson-red);
+    box-shadow: 0 0 15px rgba(255, 43, 69, 0.3);
+}
+
+.login-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--crimson-red), var(--cyber-red));
+    border: 1px solid var(--neon-red-glow);
+    border-radius: 10px;
+    color: #fff;
+    font-family: "Orbitron", sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(255, 43, 69, 0.3);
+    transition: all 0.25s;
+    margin-top: 10px;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(255, 43, 69, 0.5);
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}

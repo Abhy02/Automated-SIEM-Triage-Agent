@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AISOC Enterprise | First-Run Setup Wizard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+
+<div class="laser-beam"></div>
+
+<div class="login-card" style="width: min(620px, 94%); padding: 36px 32px;">
+    <div class="shield-logo">
+        <i class="fas fa-sliders"></i>
+    </div>
+
+    <div class="login-header">
+        <h1>AISOC SETUP WIZARD</h1>
+        <p>First-Run Platform & Organization Initialization</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="background: rgba(255, 43, 69, 0.15); border: 1px solid var(--crimson-red); color: var(--neon-red-glow); padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 20px; text-align: center;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <h3 style="font-family: Orbitron, sans-serif; font-size: 0.9rem; color: var(--crimson-red); margin-bottom: 12px; text-transform: uppercase;">
+            1. Organization & System Profile
+        </h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+                <label>Organization Name</label>
+                <input type="text" name="org_name" class="form-control" value="AISOC Organization" required>
+            </div>
+            <div class="form-group">
+                <label>Company Name</label>
+                <input type="text" name="company_name" class="form-control" value="Enterprise Cyber SOC">
+            </div>
+            <div class="form-group">
+                <label>Timezone</label>
+                <input type="text" name="timezone" class="form-control" value="Asia/Kolkata (IST)">
+            </div>
+        </div>
+
+        <h3 style="font-family: Orbitron, sans-serif; font-size: 0.9rem; color: var(--crimson-red); margin: 16px 0 12px; text-transform: uppercase;">
+            2. Primary Administrator Credentials
+        </h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+                <label>Admin Username</label>
+                <input type="text" name="admin_user" class="form-control" placeholder="e.g. admin" required>
+            </div>
+            <div class="form-group">
+                <label>Admin Email</label>
+                <input type="email" name="admin_email" class="form-control" placeholder="e.g. admin@aisoc.io" required>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" name="admin_pass" class="form-control" placeholder="Enter password..." required>
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" name="confirm_pass" class="form-control" placeholder="Re-enter password..." required>
+            </div>
+        </div>
+
+        <h3 style="font-family: Orbitron, sans-serif; font-size: 0.9rem; color: var(--crimson-red); margin: 16px 0 12px; text-transform: uppercase;">
+            3. Platform SIEM Endpoints
+        </h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+                <label>Wazuh Manager URL</label>
+                <input type="text" name="wazuh_host" class="form-control" value="https://192.168.1.61:55000">
+            </div>
+            <div class="form-group">
+                <label>OpenSearch URL</label>
+                <input type="text" name="opensearch_host" class="form-control" value="https://192.168.1.61:9200">
+            </div>
+        </div>
+
+        <button type="submit" class="login-btn" style="margin-top: 16px;">
+            <i class="fas fa-check-circle"></i> Create Administrator & Initialize Platform
+        </button>
+    </form>
+
+    <div class="login-footer">
+        <p><i class="fas fa-shield-halved" style="color: var(--crimson-red); margin-right: 6px;"></i> Automated Environment & Database Initialization</p>
+    </div>
+</div>
+
+</body>
+</html>

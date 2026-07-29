@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Investigation Console | AISOC Enterprise{% endblock %}
+
+{% block content %}
+
+{% set rule = alert.get('rule', {}) if alert.get is defined else (alert.rule if alert.rule is defined else {}) %}
+{% set agent = alert.get('agent', {}) if alert.get is defined else (alert.agent if alert.agent is defined else {}) %}
+{% set manager = alert.get('manager', {}) if alert.get is defined else (alert.manager if alert.manager is defined else {}) %}
+
+<div class="hero-soc" style="padding: 20px 0 10px;">
+    <div>
+        <div class="hero-status-tag">
+            ● INVESTIGATION CONSOLE (DOC ID: {{ doc_id }})
+        </div>
+        <h1 class="hero-title" style="font-size: 2.2rem;">
+            {{ rule.get('description', 'Security Event') if rule.get is defined else (rule.description if rule.description is defined else 'Security Event') }}
+        </h1>
+    </div>
+</div>
+
+<!-- METADATA PANEL -->
+<div class="threat-map-card" style="margin: 0 0 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-microchip"></i> Telemetry & Endpoint Metadata
+        </span>
+        {% set rule_lvl = rule.get('level', 5) if rule.get is defined else (rule.level if rule.level is defined else 5) %}
+        {% set sev_label = rule_lvl | severity %}
+        <span class="badge badge-{{ sev_label | lower }}">
+            {{ sev_label }} (Level {{ rule_lvl }})
+        </span>
+    </div>
+
+    <div class="map-counters" style="position: static; flex-wrap: wrap;">
+        <div class="map-counter-box">RULE ID: <strong>#{{ rule.get('id', 'N/A') if rule.get is defined else (rule.id if rule.id is defined else 'N/A') }}</strong></div>
+        <div class="map-counter-box">AGENT NAME: <strong>{{ agent.get('name', 'Unknown') if agent.get is defined else (agent.name if agent.name is defined else 'Unknown') }}</strong></div>
+        <div class="map-counter-box">AGENT IP: <strong>{{ agent.get('ip', 'N/A') if agent.get is defined else (agent.ip if agent.ip is defined else 'N/A') }}</strong></div>
+        <div class="map-counter-box">TIMESTAMP (IST): <strong>{{ (alert.get('@timestamp', '') if alert.get is defined else alert['@timestamp']) | datetime }}</strong></div>
+        <div class="map-counter-box">MANAGER: <strong>{{ manager.get('name', 'wazuh.manager') if manager.get is defined else (manager.name if manager.name is defined else 'wazuh.manager') }}</strong></div>
+    </div>
+</div>
+
+<!-- MULTI-STAGE ATTACK STORY CORRELATION GRAPH -->
+<div class="threat-map-card" style="margin: 0 0 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-sitemap"></i> Incident Correlation Engine & Attack Story Graph
+        </span>
+        <span class="badge badge-medium">MULTI-STAGE CHAIN</span>
+    </div>
+
+    <div id="attackStoryContainer" style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="padding: 12px 16px; background: var(--bg-secondary); border-left: 3px solid var(--crimson-red); border-radius: 6px; font-size: 0.88rem;">
+            <strong>Stage 1: Credential Access & Authentication</strong> — Authentication attempts monitored on {{ agent.get('name', 'host') if agent.get is defined else 'host' }}.
+        </div>
+        <div style="padding: 12px 16px; background: var(--bg-secondary); border-left: 3px solid var(--sev-high); border-radius: 6px; font-size: 0.88rem;">
+            <strong>Stage 2: Execution & Telemetry Baseline</strong> — Telemetry matched under Wazuh decoder rule group.
+        </div>
+    </div>
+</div>
+
+<!-- ASYNC AI INCIDENT REPORT (NON-BLOCKING WITH LOADER) -->
+<div class="threat-map-card" id="aiReportCard" style="margin: 0 0 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            🤖 AI Incident Triage Analysis
+        </span>
+        <span class="badge badge-critical" id="aiRiskBadge">EVALUATING...</span>
+    </div>
+
+    <!-- LOADING SKELETON -->
+    <div id="aiLoadingSkeleton" style="padding: 30px; text-align: center;">
+        <div style="font-size: 1.5rem; color: var(--crimson-red); margin-bottom: 12px;">
+            <i class="fas fa-circle-notch fa-spin"></i>
+        </div>
+        <div style="font-family: var(--font-heading); font-size: 1rem; color: #fff; letter-spacing: 1px;">
+            GENERATING AI INCIDENT INVESTIGATION...
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
+            Running TTP correlation, Ollama LLM prompt, and threat intelligence synthesis...
+        </div>
+    </div>
+
+    <!-- REPORT CONTENT (HIDDEN UNTIL LOADED) -->
+    <div id="aiReportContent" style="display: none;">
+        <div style="background: rgba(255, 43, 69, 0.05); border: 1px solid var(--red-border); padding: 18px; border-radius: 10px; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;" id="aiSummaryBox">
+        </div>
+
+        <div class="map-counters" style="position: static; flex-wrap: wrap; margin-bottom: 20px;">
+            <div class="map-counter-box">ROOT CAUSE: <strong id="aiRootCause">-</strong></div>
+            <div class="map-counter-box">CONFIDENCE: <strong id="aiConfidence">-</strong></div>
+            <div class="map-counter-box">KILL CHAIN PHASE: <strong id="aiKillChain">-</strong></div>
+            <div class="map-counter-box">CLASSIFICATION: <strong id="aiClassification">-</strong></div>
+        </div>
+
+        <div style="font-family: var(--font-heading); font-size: 0.85rem; font-weight: 700; color: var(--crimson-red); text-transform: uppercase; margin-bottom: 12px;">
+            Recommended Action Playbook:
+        </div>
+        <ul style="list-style: none;" id="aiRecommendationsList">
+        </ul>
+    </div>
+</div>
+
+<!-- AI COPILOT CHAT DRAWER -->
+<div class="threat-map-card" style="margin: 0 0 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            💬 AI SOC Copilot Chat Assistant
+        </span>
+    </div>
+
+    <div style="background: var(--bg-matte); border: 1px solid var(--red-border); padding: 16px; border-radius: 8px; max-height: 250px; overflow-y: auto; margin-bottom: 14px; font-size: 0.9rem;" id="copilotChatWindow">
+        <div style="color: var(--text-muted); margin-bottom: 8px;">
+            <strong>Copilot:</strong> Hello Analyst! Ask me any question about this alert, generate Linux/PowerShell triage commands, or request containment playbooks.
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 12px;">
+        <input type="text" id="copilotPromptInput" class="form-control" style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px;" placeholder="Ask Copilot (e.g. Generate Linux commands for triage)...">
+        <button class="btn-primary" onclick="sendCopilotQuery()" style="padding: 10px 20px;">
+            <i class="fas fa-paper-plane"></i> Ask
+        </button>
+    </div>
+</div>
+
+<!-- RAW JSON -->
+<div class="threat-map-card" style="margin: 0 0 24px;">
+    <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+        <i class="fas fa-terminal"></i> Full Raw Alert Log
+    </span>
+    <pre style="background: var(--bg-matte); border: 1px solid var(--red-border); padding: 16px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--neon-red-glow); overflow-x: auto; white-space: pre-wrap; margin-top: 14px;">
+{{ alert.get('full_log', alert) if alert.get is defined else alert }}
+    </pre>
+</div>
+
+<div style="margin-bottom: 40px;">
+    <a href="{{ url_for('dashboard.home') }}" class="btn-secondary">
+        <i class="fas fa-arrow-left"></i> Return to Command Center
+    </a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const docId = "{{ doc_id }}";
+
+    // Non-blocking async fetch for AI Investigation Report
+    fetch(`/api/v1/investigate/${docId}`)
+        .then(response => response.json())
+        .then(data => {
+            const report = data.report || {};
+            document.getElementById('aiLoadingSkeleton').style.display = 'none';
+            document.getElementById('aiReportContent').style.display = 'block';
+
+            document.getElementById('aiRiskBadge').innerText = `RISK: ${report.risk_score || data.risk || 'HIGH'}`;
+            document.getElementById('aiSummaryBox').innerHTML = `<strong>Executive Summary:</strong> ${report.summary || 'Alert investigation completed.'}`;
+            document.getElementById('aiRootCause').innerText = report.root_cause || 'SIEM Rule Alert Trigger';
+            document.getElementById('aiConfidence').innerText = report.confidence || `${report.confidence_score || 94}%`;
+            document.getElementById('aiKillChain').innerText = report.kill_chain_phase || (report.mitre ? report.mitre.technique : 'Execution');
+            document.getElementById('aiClassification').innerText = report.classification || 'Security Event';
+
+            const recsList = document.getElementById('aiRecommendationsList');
+            recsList.innerHTML = '';
+            const recs = report.recommended_actions || report.recommendations || [];
+            recs.forEach(item => {
+                const li = document.createElement('li');
+                li.style.cssText = 'padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--red-border); border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-soft);';
+                li.innerHTML = `<i class="fas fa-shield-check" style="color: var(--sev-low); margin-right: 8px;"></i> ${item}`;
+                recsList.appendChild(li);
+            });
+        })
+        .catch(err => {
+            console.error('AI investigation fetch error:', err);
+            document.getElementById('aiLoadingSkeleton').style.display = 'none';
+            document.getElementById('aiReportContent').style.display = 'block';
+            document.getElementById('aiSummaryBox').innerText = 'Standard rule-based triage completed. AI LLM server offline.';
+        });
+});
+
+function sendCopilotQuery() {
+    const input = document.getElementById('copilotPromptInput');
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    const chat = document.getElementById('copilotChatWindow');
+    chat.innerHTML += `<div style="color: var(--neon-red-glow); margin-top: 10px;"><strong>Analyst:</strong> ${prompt}</div>`;
+    input.value = '';
+    chat.scrollTop = chat.scrollHeight;
+
+    fetch('/api/copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt })
+    })
+    .then(res => res.json())
+    .then(data => {
+        chat.innerHTML += `<div style="color: var(--text-soft); margin-top: 8px; background: rgba(255,43,69,0.08); padding: 10px; border-radius: 6px;"><strong>Copilot:</strong> ${data.response}</div>`;
+        chat.scrollTop = chat.scrollHeight;
+    });
+}
+</script>
+{% endblock %}

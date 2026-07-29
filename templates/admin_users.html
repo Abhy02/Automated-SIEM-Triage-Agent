@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}User Management Console | AISOC Enterprise{% endblock %}
+
+{% block content %}
+<div class="cyber-banner">
+    <div class="banner-left">
+        <h1>Enterprise User Management Console</h1>
+        <p>Manage SOC analyst accounts, assign RBAC permissions, and toggle access states.</p>
+    </div>
+    <div class="banner-stats">
+        <div class="banner-kpi">
+            <label>TOTAL USERS</label>
+            <value>{{ users | length }}</value>
+        </div>
+        <div class="banner-kpi">
+            <label>SECURITY MODEL</label>
+            <value>RBAC ACTIVE</value>
+        </div>
+    </div>
+</div>
+
+<div class="threat-map-card" style="margin: 0 0 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-user-plus"></i> Create New Analyst Account
+        </span>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_bp.manage_users') }}" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
+            <input type="text" name="username" class="form-control" placeholder="e.g. j.doe" required style="margin-top: 6px;">
+        </div>
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="e.g. j.doe@aisoc.io" required style="margin-top: 6px;">
+        </div>
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Enter password..." required style="margin-top: 6px;">
+        </div>
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Assign RBAC Role</label>
+            <select name="role" class="form-control" style="margin-top: 6px;">
+                <option value="SOC Analyst">SOC Analyst</option>
+                <option value="SOC Manager">SOC Manager</option>
+                <option value="Administrator">Administrator</option>
+                <option value="Read Only">Read Only</option>
+                <option value="Auditor">Auditor</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Department</label>
+            <input type="text" name="department" class="form-control" value="SOC Operations" style="margin-top: 6px;">
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 12px;">
+                <i class="fas fa-plus-circle"></i> Create User Account
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="threat-map-card" style="margin: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-users"></i> Registered Platform User Accounts
+        </span>
+    </div>
+
+    <table class="cyber-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Department</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td style="font-family: var(--font-mono); color: var(--text-muted);">#{{ user.id }}</td>
+                <td><strong>{{ user.username }}</strong></td>
+                <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ user.email }}</td>
+                <td>
+                    <span class="badge badge-{% if user.role == 'Administrator' %}critical{% elif user.role == 'SOC Manager' %}high{% else %}medium{% endif %}">
+                        {{ user.role }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge badge-{% if user.status == 'Active' %}low{% else %}critical{% endif %}">
+                        {{ user.status }}
+                    </span>
+                </td>
+                <td>{{ user.department }}</td>
+                <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ user.created_at }}</td>
+                <td>
+                    <div style="display: flex; gap: 6px;">
+                        <form method="POST" action="{{ url_for('admin_bp.toggle_user_status', user_id=user.id) }}">
+                            <button type="submit" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">
+                                {{ 'Disable' if user.status == 'Active' else 'Enable' }}
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin_bp.delete_user_account', user_id=user.id) }}" onsubmit="return confirm('Delete account {{ user.username }}?')">
+                            <button type="submit" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; color: var(--crimson-red); border-color: var(--crimson-red);">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Settings & Configuration | AISOC Enterprise{% endblock %}
+
+{% block content %}
+<div class="cyber-banner">
+    <div class="banner-left">
+        <h1>Platform Settings & Configuration Console</h1>
+        <p>Configure OpenSearch indexer credentials, Wazuh Manager API, local Ollama model parameters, and Threat Intel keys.</p>
+    </div>
+    <div class="banner-stats">
+        <div class="banner-kpi">
+            <label>VERSION</label>
+            <value>v4.0 COMMERCIAL</value>
+        </div>
+        <div class="banner-kpi">
+            <label>HEALTH</label>
+            <value>OPTIMAL</value>
+        </div>
+    </div>
+</div>
+
+<!-- HARDWARE RESOURCE MONITORS -->
+<div class="stats-grid" style="margin-bottom: 28px;">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(0,207,255,0.15); color: var(--cyan);">
+            <i class="fas fa-microchip"></i>
+        </div>
+        <div>
+            <div class="stat-label">CPU Usage</div>
+            <div class="stat-value" style="color: var(--cyan);">14.2%</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(16,185,129,0.15); color: var(--sev-low);">
+            <i class="fas fa-memory"></i>
+        </div>
+        <div>
+            <div class="stat-label">Memory Usage</div>
+            <div class="stat-value" style="color: var(--sev-low);">4.2 GB / 16 GB</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(255,43,69,0.15); color: var(--crimson-red);">
+            <i class="fas fa-hdd"></i>
+        </div>
+        <div>
+            <div class="stat-label">Disk Storage</div>
+            <div class="stat-value" style="color: var(--neon-red-glow);">28.5 GB Available</div>
+        </div>
+    </div>
+</div>
+
+<!-- PLATFORM CONFIGURATION FORM -->
+<div class="threat-map-card" style="margin: 0 0 28px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-sliders"></i> Environment API Credentials & Endpoints
+        </span>
+    </div>
+
+    <form style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Wazuh Manager Host</label>
+                <input type="text" id="cfgWazuhHost" class="form-control" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px; margin-top: 6px;" value="https://192.168.1.61:55000">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">OpenSearch Host</label>
+                <input type="text" id="cfgOpenSearchHost" class="form-control" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px; margin-top: 6px;" value="https://192.168.1.61:9200">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Ollama LLM URL</label>
+                <input type="text" id="cfgOllamaUrl" class="form-control" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px; margin-top: 6px;" value="http://localhost:11434/api/generate">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Ollama Model Name</label>
+                <input type="text" id="cfgOllamaModel" class="form-control" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px; margin-top: 6px;" value="llama3.2:3b">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">VirusTotal API Key</label>
+                <input type="password" id="cfgVtKey" class="form-control" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px; margin-top: 6px;" placeholder="Configured in .env">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">AbuseIPDB API Key</label>
+                <input type="password" id="cfgAbuseKey" class="form-control" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px; margin-top: 6px;" placeholder="Configured in .env">
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- SERVICE TEST CONNECTIONS -->
+<div class="threat-map-card" style="margin: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-server"></i> SIEM & Database Infrastructure Status
+        </span>
+    </div>
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button class="btn-primary" onclick="testConnection('opensearch')" style="padding: 10px 20px; font-size: 0.82rem;">
+            <i class="fas fa-plug"></i> Test OpenSearch Connection
+        </button>
+        <button class="btn-secondary" onclick="testConnection('wazuh')" style="padding: 10px 20px; font-size: 0.82rem;">
+            <i class="fas fa-plug"></i> Test Wazuh API
+        </button>
+        <button class="btn-secondary" onclick="testConnection('ollama')" style="padding: 10px 20px; font-size: 0.82rem;">
+            <i class="fas fa-brain"></i> Test Ollama LLM
+        </button>
+    </div>
+
+    <div id="testConnectionStatus" style="margin-top: 14px; font-size: 0.85rem; color: var(--neon-red-glow); display: none;">
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function testConnection(target) {
+    const statusDiv = document.getElementById('testConnectionStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.innerText = `Testing connection to ${target}...`;
+
+    fetch('/api/settings/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: target })
+    })
+    .then(res => res.json())
+    .then(data => {
+        statusDiv.innerHTML = `<span style="color: var(--sev-low);"><i class="fas fa-check-circle"></i> ${data.message} (Latency: ${data.latency_ms}ms)</span>`;
+    })
+    .catch(err => {
+        statusDiv.innerHTML = `<span style="color: var(--crimson-red);"><i class="fas fa-exclamation-circle"></i> Connection check failed for ${target}</span>`;
+    });
+}
+</script>
+{% endblock %}

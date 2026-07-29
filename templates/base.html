@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI SOC Analyst - Autonomous SIEM Triage Agent Command Center">
+    <title>{% block title %}AI SOC | Autonomous SIEM Triage Agent{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% set user_role = session.user.role if (session.user is defined and session.user and session.user.role is defined) else 'SOC Analyst' %}
+
+<!-- FLOATING GLASS NAVBAR -->
+<nav class="cyber-navbar">
+    <a href="{{ url_for('dashboard.home') }}" class="nav-brand">
+        <div class="nav-brand-logo">
+            <i class="fas fa-shield-halved"></i>
+        </div>
+        <div class="nav-brand-text">
+            AI <span>SOC</span>
+        </div>
+    </a>
+
+    <div class="nav-menu">
+        <a href="{{ url_for('dashboard.home') }}" class="nav-item {% if request.endpoint == 'dashboard.home' %}active{% endif %}">
+            <i class="fas fa-chart-line"></i> Dashboard
+        </a>
+        <a href="{{ url_for('dashboard.home') }}#recent-alerts" class="nav-item">
+            <i class="fas fa-triangle-exclamation"></i> Incidents
+        </a>
+
+        {% if user_role in ['Administrator', 'SOC Manager', 'SOC Analyst'] %}
+        <a href="{{ url_for('dashboard.threat_intel') }}" class="nav-item {% if request.endpoint == 'dashboard.threat_intel' %}active{% endif %}">
+            <i class="fas fa-network-wired"></i> Threat Intelligence
+        </a>
+        <a href="{{ url_for('dashboard.mitre_matrix') }}" class="nav-item {% if request.endpoint == 'dashboard.mitre_matrix' %}active{% endif %}">
+            <i class="fas fa-chess-board"></i> MITRE ATT&CK
+        </a>
+        {% endif %}
+
+        <a href="{{ url_for('dashboard.reports') }}" class="nav-item {% if request.endpoint == 'dashboard.reports' %}active{% endif %}">
+            <i class="fas fa-file-shield"></i> Reports
+        </a>
+
+        {% if user_role == 'Administrator' %}
+        <a href="{{ url_for('admin_bp.manage_users') }}" class="nav-item {% if request.endpoint == 'admin_bp.manage_users' %}active{% endif %}">
+            <i class="fas fa-users-gear"></i> Users
+        </a>
+        <a href="{{ url_for('admin_bp.view_audit_logs') }}" class="nav-item {% if request.endpoint == 'admin_bp.view_audit_logs' %}active{% endif %}">
+            <i class="fas fa-list-check"></i> Audit Logs
+        </a>
+        <a href="{{ url_for('dashboard.settings') }}" class="nav-item {% if request.endpoint == 'dashboard.settings' %}active{% endif %}">
+            <i class="fas fa-gear"></i> Settings
+        </a>
+        {% endif %}
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <button onclick="toggleGlobalSearchModal()" class="icon-button" title="Global Search (Press '/')">
+            <i class="fas fa-search"></i>
+        </button>
+
+        <a href="{{ url_for('admin_bp.profile') }}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.82rem; color: var(--text-soft);">
+                {{ session.user.username if session.user else 'Analyst' }}
+            </span>
+            <span class="badge badge-{% if user_role == 'Administrator' %}critical{% elif user_role == 'SOC Manager' %}high{% else %}medium{% endif %}" style="font-size: 0.65rem;">
+                {{ user_role }}
+            </span>
+        </a>
+
+        <a href="{{ url_for('auth.logout') }}" style="color: var(--crimson-red); font-size: 1.1rem; text-decoration: none;" title="Sign Out">
+            <i class="fas fa-power-off"></i>
+        </a>
+    </div>
+</nav>
+
+<!-- DEMO MODE BANNER (IF ACTIVE) -->
+{% if config.get('DEMO_MODE', False) or session.get('demo_mode', False) %}
+<div style="background: linear-gradient(90deg, #32080B, #E50914); color: #fff; text-align: center; padding: 6px; font-size: 0.8rem; font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 1px;">
+    ● DEMO MODE — Read Only Telemetry Session (No live SIEM connection required)
+</div>
+{% endif %}
+
+<!-- GLOBAL SEARCH MODAL OVERLAY -->
+<div id="globalSearchModal" style="display: none; position: fixed; inset: 0; background: rgba(7,7,9,0.9); z-index: 9999; backdrop-filter: blur(16px); padding: 60px 20px; overflow-y: auto;">
+    <div style="max-width: 700px; margin: 0 auto; background: var(--bg-card); border: 1px solid var(--red-border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-main);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <span style="font-family: var(--font-heading); font-size: 0.9rem; color: var(--crimson-red); text-transform: uppercase;">
+                <i class="fas fa-globe"></i> Global Platform Search
+            </span>
+            <button onclick="toggleGlobalSearchModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <input type="text" id="globalSearchInput" class="form-control" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 12px; font-size: 1rem;" placeholder="Search alerts, hosts, rule IDs, reports, IOCs..." oninput="executeGlobalSearch()">
+
+        <div id="globalSearchResults" style="margin-top: 18px; max-height: 400px; overflow-y: auto;">
+        </div>
+    </div>
+</div>
+
+<!-- DASHBOARD STATUS INDICATORS BAR -->
+<div class="status-bar-container">
+    <div class="status-pill-group">
+        <div class="status-pill">
+            <span class="indicator green"></span> SOC Status: OPERATIONAL
+        </div>
+        <div class="status-pill">
+            <span class="indicator"></span> Threat Level: ELEVATED
+        </div>
+        <div class="status-pill">
+            <span class="indicator green"></span> SIEM: CONNECTED
+        </div>
+        <div class="status-pill">
+            <span class="indicator green"></span> AI Engine: ACTIVE
+        </div>
+        <div class="status-pill">
+            <span class="indicator green"></span> Endpoints: ONLINE
+        </div>
+        <div class="status-pill">
+            <span class="indicator green"></span> Wazuh Manager: CONNECTED
+        </div>
+        <div class="status-pill">
+            <span class="indicator green"></span> Threat Intel: SYNCHRONIZED
+        </div>
+    </div>
+
+    <!-- LIVE IST CLOCK -->
+    <div class="ist-clock" id="liveIstClock">
+        -- --- ---- --:--:-- IST
+    </div>
+</div>
+
+<!-- MAIN CANVAS WORKSPACE -->
+<main class="container-main">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- JavaScript -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% block scripts %}{% endblock %}
+
+<script>
+function updateIstClock() {
+    const now = new Date();
+    const options = {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+    const formatter = new Intl.DateTimeFormat('en-GB', options);
+    const parts = formatter.formatToParts(now);
+    
+    let day = '', month = '', year = '', time = '';
+    parts.forEach(p => {
+        if (p.type === 'day') day = p.value;
+        if (p.type === 'month') month = p.value;
+        if (p.type === 'year') year = p.value;
+        if (p.type === 'hour') time += p.value;
+        if (p.type === 'minute') time += ':' + p.value;
+        if (p.type === 'second') time += ':' + p.value;
+    });
+
+    document.getElementById("liveIstClock").innerText = `${day} ${month} ${year} ${time} IST`;
+}
+setInterval(updateIstClock, 1000);
+updateIstClock();
+
+function toggleGlobalSearchModal() {
+    const modal = document.getElementById('globalSearchModal');
+    const input = document.getElementById('globalSearchInput');
+    if (modal.style.display === 'none') {
+        modal.style.display = 'block';
+        input.focus();
+    } else {
+        modal.style.display = 'none';
+    }
+}
+
+function executeGlobalSearch() {
+    const q = document.getElementById('globalSearchInput').value.trim();
+    const resultsDiv = document.getElementById('globalSearchResults');
+    if (!q) {
+        resultsDiv.innerHTML = '';
+        return;
+    }
+
+    fetch(`/api/search?q=${encodeURIComponent(q)}`)
+        .then(res => res.json())
+        .then(data => {
+            let html = '';
+            (data.alerts || []).forEach(a => {
+                html += `<div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--red-border); border-radius: 6px; margin-bottom: 8px;">
+                    <a href="/alert/${a.doc_id}" style="color: var(--neon-red-glow); font-weight: 700; text-decoration: none;">Alert #${a.rule_id} - ${a.description}</a>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Agent: ${a.agent_name} (${a.agent_ip})</div>
+                </div>`;
+            });
+            resultsDiv.innerHTML = html || '<div style="color: var(--text-muted); padding: 10px;">No matching alerts found.</div>';
+        });
+}
+</script>
+
+</body>
+</html>

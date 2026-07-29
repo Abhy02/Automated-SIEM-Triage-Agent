@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile & Security Settings | AISOC Enterprise{% endblock %}
+
+{% block content %}
+<div class="cyber-banner">
+    <div class="banner-left">
+        <h1>User Profile & Security Settings</h1>
+        <p>Update user email address, security credentials, and active session settings.</p>
+    </div>
+    <div class="banner-stats">
+        <div class="banner-kpi">
+            <label>CURRENT ROLE</label>
+            <value>{{ session.user.role if session.user else 'SOC Analyst' }}</value>
+        </div>
+    </div>
+</div>
+
+<div class="threat-map-card" style="margin: 0; max-width: 600px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-id-card"></i> Profile Credentials
+        </span>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_bp.profile') }}" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
+            <input type="text" class="form-control" value="{{ session.user.username if session.user else 'Analyst' }}" disabled style="margin-top: 6px; opacity: 0.7;">
+        </div>
+
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Update Email Address</label>
+            <input type="email" name="email" class="form-control" value="{{ session.user.email if session.user else 'analyst@aisoc.io' }}" style="margin-top: 6px;">
+        </div>
+
+        <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">New Password (leave blank to keep current)</label>
+            <input type="password" name="new_password" class="form-control" placeholder="Enter new password..." style="margin-top: 6px;">
+        </div>
+
+        <button type="submit" class="btn-primary" style="padding: 12px; margin-top: 10px;">
+            <i class="fas fa-save"></i> Save Profile Changes
+        </button>
+    </form>
+</div>
+{% endblock %}

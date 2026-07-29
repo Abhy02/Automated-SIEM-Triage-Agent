@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AISOC Enterprise | Secure Sign In</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+
+<div class="laser-beam"></div>
+
+<div class="login-card">
+    <div class="shield-logo">
+        <i class="fas fa-shield-halved"></i>
+    </div>
+
+    <div class="login-header">
+        <h1>AI SOC</h1>
+        <p>Automated SIEM Triage Platform</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="background: rgba(255, 43, 69, 0.15); border: 1px solid var(--crimson-red); color: var(--neon-red-glow); padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 20px; text-align: center;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <div class="form-group">
+            <label>Analyst Username</label>
+            <input type="text" name="username" class="form-control" placeholder="Enter username..." required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+            <label>Security Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Enter password..." required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="login-btn">
+            <i class="fas fa-lock"></i> Secure Sign In
+        </button>
+    </form>
+
+    <div style="margin-top: 14px; text-align: center;">
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            <input type="hidden" name="username" value="darknet">
+            <input type="hidden" name="password" value="Agent@321">
+            <button type="submit" style="background: rgba(0, 207, 255, 0.1); border: 1px solid var(--cyan); color: var(--cyan); padding: 10px; width: 100%; border-radius: 10px; font-family: Orbitron, sans-serif; font-size: 0.82rem; cursor: pointer;">
+                <i class="fas fa-play-circle"></i> Launch Demo Mode
+            </button>
+        </form>
+    </div>
+
+    <div class="login-footer">
+        <p><i class="fas fa-fingerprint" style="color: var(--crimson-red); margin-right: 6px;"></i> Encrypted Security Operations Center Session</p>
+        <p style="margin-top: 6px; font-size: 0.7rem; opacity: 0.7;">© 2026 AISOC Enterprise • All Rights Reserved</p>
+    </div>
+</div>
+
+</body>
+</html>

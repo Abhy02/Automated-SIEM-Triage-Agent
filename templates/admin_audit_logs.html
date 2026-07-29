@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}System Audit Logs | AISOC Enterprise{% endblock %}
+
+{% block content %}
+<div class="cyber-banner">
+    <div class="banner-left">
+        <h1>System Audit Logs & Security Events</h1>
+        <p>Review privileged administrator actions, user management events, and authentication activity.</p>
+    </div>
+    <div class="banner-stats">
+        <div class="banner-kpi">
+            <label>LOGGED EVENTS</label>
+            <value>{{ logs | length }} RECORDS</value>
+        </div>
+    </div>
+</div>
+
+<div class="threat-map-card" style="margin: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-list-check"></i> Audit Activity Logs
+        </span>
+    </div>
+
+    <table class="cyber-table">
+        <thead>
+            <tr>
+                <th>Timestamp (IST)</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Action</th>
+                <th>Details</th>
+                <th>IP Address</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ log.timestamp }}</td>
+                <td><strong>{{ log.username }}</strong></td>
+                <td><span class="badge badge-medium">{{ log.role }}</span></td>
+                <td style="font-family: var(--font-mono); color: var(--neon-red-glow);">{{ log.action }}</td>
+                <td>{{ log.details }}</td>
+                <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ log.ip_address }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                    No audit log records found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

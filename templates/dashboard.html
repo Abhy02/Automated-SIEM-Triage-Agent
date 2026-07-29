@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}AI SOC | Command Center & SIEM Triage Console{% endblock %}
+
+{% block content %}
+
+<!-- HERO SECTION -->
+<div class="hero-soc">
+    <div class="hero-content">
+        <div class="hero-status-tag">
+            ● LIVE MONITORING
+        </div>
+
+        <h1 class="hero-title">
+            AI <span>SOC</span><br>
+            Automated SIEM Triage Agent
+        </h1>
+
+        <p class="hero-subtitle">
+            AI-Powered Threat Detection, Incident Correlation, MITRE ATT&CK Mapping, IOC Intelligence, Autonomous Incident Response.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="#recent-alerts" class="btn-primary">
+                <i class="fas fa-crosshairs"></i> Launch Dashboard
+            </a>
+            <a href="{{ url_for('dashboard.reports') }}" class="btn-secondary">
+                <i class="fas fa-file-shield"></i> View Security Report
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- INTERACTIVE THREAT MAP & RADAR SWEEP WIDGET -->
+<div class="threat-map-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-globe"></i> Global Threat Map & Radar Sweep
+        </span>
+        <span class="badge badge-critical">ACTIVE ATTACK VECTORS</span>
+    </div>
+
+    <div class="map-viewport">
+        <div class="radar-sweep"></div>
+        <div class="map-grid-overlay"></div>
+
+        <div class="attack-node node-1" title="North America Vector"></div>
+        <div class="attack-node node-2" title="Europe Vector"></div>
+        <div class="attack-node node-3" title="India / Asia Vector"></div>
+
+        <div class="map-counters">
+            <div class="map-counter-box">ACTIVE ARCS: <strong>14</strong></div>
+            <div class="map-counter-box">TARGET NODE: <strong>darknet (192.168.1.61)</strong></div>
+            <div class="map-counter-box">SIEM EVENTS/SEC: <strong>42 EPS</strong></div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI STAT CARDS GRID -->
+<div class="stats-grid" aria-label="Security Metrics Grid">
+    <div class="stat-card active-filter" data-filter="all">
+        <div class="stat-icon">
+            <i class="fas fa-chart-pie"></i>
+        </div>
+        <div>
+            <div class="stat-label">Total SIEM Events</div>
+            <div class="stat-value" id="kpiTotal">{{ data.stats.total }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card" data-filter="critical">
+        <div class="stat-icon" style="background: var(--sev-critical-bg); color: var(--sev-critical);">
+            <i class="fas fa-skull-crossbones"></i>
+        </div>
+        <div>
+            <div class="stat-label">Critical Alerts</div>
+            <div class="stat-value" id="kpiCritical" style="color: var(--sev-critical);">{{ data.stats.critical }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card" data-filter="high">
+        <div class="stat-icon" style="background: var(--sev-high-bg); color: var(--sev-high);">
+            <i class="fas fa-fire"></i>
+        </div>
+        <div>
+            <div class="stat-label">High Severity</div>
+            <div class="stat-value" id="kpiHigh" style="color: var(--sev-high);">{{ data.stats.high }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card" data-filter="medium">
+        <div class="stat-icon" style="background: var(--sev-medium-bg); color: var(--sev-medium);">
+            <i class="fas fa-triangle-exclamation"></i>
+        </div>
+        <div>
+            <div class="stat-label">Medium Severity</div>
+            <div class="stat-value" id="kpiMedium" style="color: var(--sev-medium);">{{ data.stats.medium }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card" data-filter="low">
+        <div class="stat-icon" style="background: var(--sev-low-bg); color: var(--sev-low);">
+            <i class="fas fa-shield-check"></i>
+        </div>
+        <div>
+            <div class="stat-label">Low / Informational</div>
+            <div class="stat-value" id="kpiLow" style="color: var(--sev-low);">{{ data.stats.low }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- REAL-TIME HIGHEST PRIORITY THREAT TRIAGE ADVISORY BANNER -->
+<div class="threat-map-card" id="latest-alert" style="margin: 0 0 28px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
+            🤖 Highest Priority Threat Triage Advisory
+        </span>
+        {% if data.latest %}
+            {% set sev_label = data.latest.alert.severity | severity %}
+            <span class="badge badge-{{ sev_label | lower }}" id="advisoryBadge">
+                {{ sev_label }} (Level {{ data.latest.alert.severity }})
+            </span>
+        {% else %}
+            <span class="badge badge-low" id="advisoryBadge">INFORMATIONAL</span>
+        {% endif %}
+    </div>
+
+    <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 16px;" id="advisoryDescription">
+        {{ data.latest.alert.description if data.latest else 'No active alerts detected in OpenSearch telemetry dataset.' }}
+    </h2>
+
+    <div class="map-counters" style="position: static; margin-bottom: 16px;">
+        <div class="map-counter-box">ENDPOINT: <strong id="advisoryAgent">{{ data.latest.alert.agent_name if data.latest else 'N/A' }}</strong></div>
+        <div class="map-counter-box">RISK SCORE: <strong id="advisoryRisk">{{ data.latest.risk if data.latest else 'LOW' }}</strong></div>
+        <div class="map-counter-box">MITRE TECHNIQUE: <strong id="advisoryMitre">{% if data.latest and data.latest.mitre %}{{ data.latest.mitre.technique }} - {{ data.latest.mitre.name }}{% else %}Pending Triage{% endif %}</strong></div>
+    </div>
+
+    <div style="background: rgba(255, 43, 69, 0.05); border: 1px solid var(--red-border); padding: 16px; border-radius: 10px; font-size: 0.9rem; line-height: 1.6;" id="advisorySummary">
+        {{ data.latest.report.summary if data.latest else 'SIEM telemetry connection active. Standing by for incident investigation.' }}
+    </div>
+</div>
+
+<!-- LIVE SIEM ALERT TELEMETRY FEED TABLE -->
+<div class="threat-map-card" id="recent-alerts" style="margin: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-list-ul"></i> Live SIEM Alert Telemetry Feed (20s Auto-Update)
+            <button onclick="triggerManualRefresh()" style="background: none; border: none; color: var(--crimson-red); cursor: pointer; font-size: 1rem;" title="Manual Refresh Telemetry">
+                <i class="fas fa-rotate" id="refreshSpinnerIcon"></i>
+            </button>
+        </span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);" id="telemetryFeedCount">Showing Page {{ data.pagination.current_page }} of {{ data.pagination.total_pages }} ({{ data.pagination.total_items }} Total Alerts)</span>
+    </div>
+
+    <div style="display: flex; gap: 14px; margin-bottom: 18px;">
+        <input type="text" id="alertSearch" class="form-control" style="flex: 1; background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px 14px; border-radius: 8px;" placeholder="Search by Rule ID, Agent, Description (Press '/' to focus)..." oninput="triggerManualRefresh()">
+        
+        <select id="severityFilter" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; cursor: pointer;" onchange="triggerManualRefresh()">
+            <option value="all">Severity: All</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+        </select>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="cyber-table">
+            <thead>
+                <tr>
+                    <th>Timestamp (IST)</th>
+                    <th>Severity</th>
+                    <th>Rule ID</th>
+                    <th>Description</th>
+                    <th>Endpoint Agent</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="alertsTbody">
+                {% for alert in data.alerts %}
+                    {% set source = alert.get('_source', {}) %}
+                    {% set doc_id = alert.get('_id', '') %}
+                    {% set rule_lvl = source.get('rule', {}).get('level', 0) %}
+                    {% set sev = rule_lvl | severity %}
+                    <tr class="log-row" data-severity="{{ sev | lower }}">
+                        <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ source.get('@timestamp', '') | datetime }}</td>
+                        <td><span class="badge badge-{{ sev | lower }}">{{ sev }}</span></td>
+                        <td style="font-family: var(--font-mono); font-size: 0.82rem;">#{{ source.get('rule', {}).get('id', '') }}</td>
+                        <td>{{ source.get('rule', {}).get('description', '') }}</td>
+                        <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ source.get('agent', {}).get('name', 'Unknown') }}</td>
+                        <td>
+                            <a href="{{ url_for('dashboard.alert_details', doc_id=doc_id) }}" style="color: var(--crimson-red); text-decoration: none; font-weight: 700; font-size: 0.82rem;">
+                                Triage <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                            No matching alerts found in OpenSearch index.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGINATION CONTROLS -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--red-border);">
+        <button id="btnPrevPage" onclick="changePage({{ data.pagination.current_page - 1 }})" class="btn-secondary" style="padding: 8px 16px; font-size: 0.82rem;" {% if not data.pagination.has_prev %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+            <i class="fas fa-chevron-left"></i> Previous Page
+        </button>
+
+        <span style="font-family: var(--font-heading); font-size: 0.85rem; color: var(--text-muted);" id="paginationPageLabel">
+            Page {{ data.pagination.current_page }} of {{ data.pagination.total_pages }}
+        </span>
+
+        <button id="btnNextPage" onclick="changePage({{ data.pagination.current_page + 1 }})" class="btn-secondary" style="padding: 8px 16px; font-size: 0.82rem;" {% if not data.pagination.has_next %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+            Next Page <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = {{ data.pagination.current_page }};
+
+function changePage(newPage) {
+    if (newPage < 1) return;
+    currentPage = newPage;
+    triggerManualRefresh();
+}
+
+function triggerManualRefresh() {
+    const icon = document.getElementById('refreshSpinnerIcon');
+    if (icon) icon.classList.add('fa-spin');
+
+    const search = document.getElementById('alertSearch').value;
+    const severity = document.getElementById('severityFilter').value;
+
+    fetch(`/api/v1/alerts?page=${currentPage}&search=${encodeURIComponent(search)}&severity=${encodeURIComponent(severity)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (icon) icon.classList.remove('fa-spin');
+
+            // 1. Update KPI stats
+            document.getElementById('kpiTotal').innerText = data.stats.total;
+            document.getElementById('kpiCritical').innerText = data.stats.critical;
+            document.getElementById('kpiHigh').innerText = data.stats.high;
+            document.getElementById('kpiMedium').innerText = data.stats.medium;
+            document.getElementById('kpiLow').innerText = data.stats.low;
+
+            // 2. Update Advisory Banner
+            if (data.latest) {
+                document.getElementById('advisoryDescription').innerText = data.latest.description;
+                document.getElementById('advisoryAgent').innerText = data.latest.agent_name;
+                document.getElementById('advisoryRisk').innerText = data.latest.risk;
+                document.getElementById('advisorySummary').innerText = data.latest.summary;
+                const advisoryMitre = document.getElementById('advisoryMitre');
+                if (advisoryMitre) {
+                    advisoryMitre.innerText = data.latest.mitre ? `${data.latest.mitre.technique} - ${data.latest.mitre.name}` : 'Pending Triage';
+                }
+                const badge = document.getElementById('advisoryBadge');
+                if (badge) {
+                    badge.className = `badge badge-${(data.latest.severity || 'low').toLowerCase()}`;
+                    badge.innerText = `${data.latest.severity}`;
+                }
+            }
+
+            // 3. Update Table Rows with formatted IST timestamp & alphabetic severity badge
+            const tbody = document.getElementById('alertsTbody');
+            tbody.innerHTML = '';
+
+            if (data.alerts && data.alerts.length > 0) {
+                data.alerts.forEach(alert => {
+                    const sevLower = (alert.severity || 'low').toLowerCase();
+                    const row = document.createElement('tr');
+                    row.className = 'log-row';
+                    row.dataset.severity = sevLower;
+                    row.innerHTML = `
+                        <td style="font-family: var(--font-mono); font-size: 0.82rem;">${alert.timestamp}</td>
+                        <td><span class="badge badge-${sevLower}">${alert.severity}</span></td>
+                        <td style="font-family: var(--font-mono); font-size: 0.82rem;">#${alert.rule_id}</td>
+                        <td>${alert.description}</td>
+                        <td style="font-family: var(--font-mono); font-size: 0.82rem;">${alert.agent_name}</td>
+                        <td>
+                            <a href="/alert/${alert.doc_id}" style="color: var(--crimson-red); text-decoration: none; font-weight: 700; font-size: 0.82rem;">
+                                Triage <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">No matching alerts found in OpenSearch index.</td></tr>`;
+            }
+
+            // 4. Update Pagination Controls
+            const pag = data.pagination;
+            document.getElementById('telemetryFeedCount').innerText = `Showing Page ${pag.current_page} of ${pag.total_pages} (${pag.total_items} Total Alerts)`;
+            document.getElementById('paginationPageLabel').innerText = `Page ${pag.current_page} of ${pag.total_pages}`;
+
+            const btnPrev = document.getElementById('btnPrevPage');
+            const btnNext = document.getElementById('btnNextPage');
+
+            btnPrev.disabled = !pag.has_prev;
+            btnPrev.style.opacity = pag.has_prev ? '1' : '0.5';
+
+            btnNext.disabled = !pag.has_next;
+            btnNext.style.opacity = pag.has_next ? '1' : '0.5';
+        })
+        .catch(err => {
+            if (icon) icon.classList.remove('fa-spin');
+            console.error('Failed to refresh dashboard telemetry:', err);
+        });
+}
+
+// 20-Second Live Auto-Refresh Polling
+setInterval(triggerManualRefresh, 20000);
+</script>
+{% endblock %}
