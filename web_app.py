@@ -8,6 +8,10 @@ from auth.admin_routes import admin_bp
 from dashboard.routes import dashboard
 from dashboard.utils import format_timestamp, severity_badge
 from auth.routes import auth
+from network import start_network_monitor, validate_startup
+from runtime import start_runtime_watchdog
+from telemetry import start_telemetry_monitor
+from report_sync import start_report_sync
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,8 +24,38 @@ app = Flask(__name__)
 
 app.config["SECRET_KEY"] = Config.SECRET_KEY
 
+# Execute Pre-Flight Enterprise Startup Network & Service Validation
+try:
+    validate_startup()
+except Exception as e:
+    logger.error(f"Pre-flight startup validation encountered non-fatal notice: {e}")
+
 # Initialize Database Schema
 init_db()
+
+# Initialize Enterprise Network Auto-Recovery Daemon
+try:
+    start_network_monitor()
+except Exception as e:
+    logger.error(f"Failed to start NetworkMonitor daemon: {e}")
+
+# Initialize Enterprise Runtime Health & Stability Watchdog
+try:
+    start_runtime_watchdog()
+except Exception as e:
+    logger.error(f"Failed to start RuntimeWatchdog daemon: {e}")
+
+# Initialize Live Alert Telemetry Synchronization Daemon
+try:
+    start_telemetry_monitor()
+except Exception as e:
+    logger.error(f"Failed to start TelemetryMonitor daemon: {e}")
+
+# Initialize Dynamic Report Synchronization Engine
+try:
+    start_report_sync()
+except Exception as e:
+    logger.error(f"Failed to start ReportRefreshService daemon: {e}")
 
 # Register Blueprints
 app.register_blueprint(auth)

@@ -98,7 +98,7 @@
 </div>
 
 <!-- SERVICE TEST CONNECTIONS -->
-<div class="threat-map-card" style="margin: 0;">
+<div class="threat-map-card" style="margin: 0 0 28px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--crimson-red); text-transform: uppercase; letter-spacing: 1.5px;">
             <i class="fas fa-server"></i> SIEM & Database Infrastructure Status
@@ -120,10 +120,136 @@
     <div id="testConnectionStatus" style="margin-top: 14px; font-size: 0.85rem; color: var(--neon-red-glow); display: none;">
     </div>
 </div>
+
+<!-- ENTERPRISE NETWORK AUTO-RECOVERY & DYNAMIC IP MANAGEMENT -->
+<div class="threat-map-card" style="margin: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <span style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: var(--cyan); text-transform: uppercase; letter-spacing: 1.5px;">
+            <i class="fas fa-network-wired"></i> Enterprise Network Auto-Recovery & Dynamic IP Management
+        </span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Auto Recovery:</span>
+            <button id="netToggleBtn" onclick="toggleAutoRecovery()" class="btn-primary" style="padding: 4px 14px; font-size: 0.78rem;">
+                Loading...
+            </button>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px;">
+        <div style="background: var(--bg-secondary); border: 1px solid var(--red-border); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Current LAN IP</div>
+            <div id="netCurrentIp" style="font-size: 1rem; font-weight: 800; color: var(--cyan); margin-top: 4px;">--</div>
+        </div>
+
+        <div style="background: var(--bg-secondary); border: 1px solid var(--red-border); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Current Network</div>
+            <div id="netCurrentNetwork" style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-top: 4px;">--</div>
+        </div>
+
+        <div style="background: var(--bg-secondary); border: 1px solid var(--red-border); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Current Gateway</div>
+            <div id="netCurrentGateway" style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-top: 4px;">--</div>
+        </div>
+
+        <div style="background: var(--bg-secondary); border: 1px solid var(--red-border); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">OpenSearch Status</div>
+            <div id="netOpenSearchStatus" style="font-size: 0.85rem; font-weight: 800; color: var(--sev-low); margin-top: 4px;">--</div>
+        </div>
+
+        <div style="background: var(--bg-secondary); border: 1px solid var(--red-border); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Agent Status</div>
+            <div id="netAgentStatus" style="font-size: 0.85rem; font-weight: 800; color: var(--sev-low); margin-top: 4px;">--</div>
+        </div>
+
+        <div style="background: var(--bg-secondary); border: 1px solid var(--red-border); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Network Status</div>
+            <div id="netStatusLabel" style="font-size: 0.85rem; font-weight: 800; color: var(--sev-low); margin-top: 4px;">Connected</div>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+            <span>Last IP Change: <strong id="netLastIpChange" style="color: #fff;">Never / Initialized</strong></span> | 
+            <span style="margin-left: 8px;">Last Health Check: <strong id="netLastHealthCheck" style="color: #fff;">--</strong></span>
+        </div>
+        <div>
+            <button class="btn-secondary" onclick="triggerNetworkRescan()" style="padding: 8px 16px; font-size: 0.8rem;">
+                <i class="fas fa-sync-alt"></i> Trigger IP Rescan & Sync
+            </button>
+        </div>
+    </div>
+
+    <div id="networkActionResult" style="margin-top: 14px; font-size: 0.85rem; display: none;"></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+let currentAutoRecoveryState = true;
+
+function fetchNetworkStatus() {
+    fetch('/api/network/status')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('netCurrentIp').innerText = data.current_ip || 'Disconnected';
+            document.getElementById('netCurrentNetwork').innerText = data.network_name || data.network_interface || 'Ethernet / Wi-Fi';
+            document.getElementById('netCurrentGateway').innerText = data.current_gateway || 'Default Gateway';
+
+            const osStatus = data.details && data.details.opensearch ? data.details.opensearch.status : 'Unknown';
+            document.getElementById('netOpenSearchStatus').innerText = osStatus.toUpperCase();
+            document.getElementById('netOpenSearchStatus').style.color = osStatus === 'online' ? 'var(--sev-low)' : 'var(--crimson-red)';
+
+            const agStatus = data.details && data.details.wazuh_agent ? data.details.wazuh_agent.status : 'Unknown';
+            document.getElementById('netAgentStatus').innerText = agStatus.toUpperCase();
+
+            document.getElementById('netLastIpChange').innerText = data.last_ip_change || 'None';
+            document.getElementById('netLastHealthCheck').innerText = data.last_health_check || 'Just now';
+
+            currentAutoRecoveryState = data.auto_recovery_enabled;
+            const toggleBtn = document.getElementById('netToggleBtn');
+            if (currentAutoRecoveryState) {
+                toggleBtn.innerText = 'ENABLED';
+                toggleBtn.style.background = 'var(--sev-low)';
+                toggleBtn.style.color = '#fff';
+            } else {
+                toggleBtn.innerText = 'DISABLED';
+                toggleBtn.style.background = 'var(--bg-tertiary)';
+                toggleBtn.style.color = 'var(--text-muted)';
+            }
+        })
+        .catch(err => console.error('Failed to load network status:', err));
+}
+
+function toggleAutoRecovery() {
+    const newState = !currentAutoRecoveryState;
+    fetch('/api/network/toggle-auto-recovery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newState })
+    })
+    .then(res => res.json())
+    .then(data => {
+        fetchNetworkStatus();
+    })
+    .catch(err => alert('Failed to update Auto Recovery setting.'));
+}
+
+function triggerNetworkRescan() {
+    const resultDiv = document.getElementById('networkActionResult');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<span style="color: var(--cyan);"><i class="fas fa-spinner fa-spin"></i> Scanning network interfaces and verifying configurations...</span>';
+
+    fetch('/api/network/rescan', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            resultDiv.innerHTML = `<span style="color: var(--sev-low);"><i class="fas fa-check-circle"></i> ${data.message}</span>`;
+            fetchNetworkStatus();
+        })
+        .catch(err => {
+            resultDiv.innerHTML = '<span style="color: var(--crimson-red);"><i class="fas fa-exclamation-circle"></i> Network rescan request failed.</span>';
+        });
+}
+
 function testConnection(target) {
     const statusDiv = document.getElementById('testConnectionStatus');
     statusDiv.style.display = 'block';
@@ -142,5 +268,8 @@ function testConnection(target) {
         statusDiv.innerHTML = `<span style="color: var(--crimson-red);"><i class="fas fa-exclamation-circle"></i> Connection check failed for ${target}</span>`;
     });
 }
+
+document.addEventListener('DOMContentLoaded', fetchNetworkStatus);
 </script>
 {% endblock %}
+

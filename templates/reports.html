@@ -6,26 +6,38 @@
 <div class="cyber-banner">
     <div class="banner-left">
         <h1>Incident Reports Archive Console</h1>
-        <p>Manage, filter, view, and export ReportLab PDF incident reports and JSON archives.</p>
+        <p>Manage, filter, view, auto-synchronize, and export ReportLab PDF incident reports and JSON archives.</p>
     </div>
     <div class="banner-stats">
         <div class="banner-kpi">
-            <label>ARCHIVED REPORTS</label>
+            <label>SIEM ALERTS INDEXED</label>
             <value id="totalReportsCount">{{ reports | length }}</value>
         </div>
         <div class="banner-kpi">
-            <label>EXPORT FORMAT</label>
-            <value>PDF / JSON</value>
+            <label>LATEST / OUTDATED</label>
+            <value><span id="kpiLatestCount" style="color: var(--sev-low);">{{ stats.latest_reports | default(0) }}</span> / <span id="kpiOutdatedCount" style="color: var(--crimson-red);">{{ stats.outdated_reports | default(0) }}</span></value>
+        </div>
+        <div class="banner-kpi">
+            <label>LAST ALERT STAMP</label>
+            <value id="kpiLastAlertTs" style="font-size: 0.85rem; font-family: var(--font-mono);">{{ stats.last_alert_timestamp | default('Active Monitoring') }}</value>
         </div>
     </div>
 </div>
 
 <div class="panel-card">
-    <div class="panel-header">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <span class="panel-title">
             <i class="fas fa-file-shield"></i>
-            Archived Incident Investigation Reports
+            SIEM Alert Reports & Investigation Index
         </span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">
+                Auto Sync: <strong style="color: var(--sev-low);"><i class="fas fa-sync fa-spin"></i> ACTIVE</strong>
+            </span>
+            <button class="btn-secondary" onclick="syncReportsNow()" style="padding: 6px 14px; font-size: 0.78rem;">
+                <i class="fas fa-sync-alt"></i> Sync Index Now
+            </button>
+        </div>
     </div>
 
     <!-- FILTER TOOLBAR -->
@@ -39,6 +51,14 @@
             <option value="medium">Medium</option>
             <option value="low">Low</option>
         </select>
+
+        <select id="reportStatusFilter" style="background: var(--bg-secondary); border: 1px solid var(--red-border); color: #fff; padding: 10px; border-radius: 8px; cursor: pointer;">
+            <option value="all">Status: All</option>
+            <option value="new alert">New Alert</option>
+            <option value="latest">Latest</option>
+            <option value="outdated">Outdated</option>
+            <option value="cached">Cached</option>
+        </select>
     </div>
 
     <!-- REPORT TABLE -->
@@ -46,17 +66,18 @@
         <table class="cyber-table">
             <thead>
                 <tr>
-                    <th>Created Date (IST)</th>
+                    <th>Created / Sync Time (IST)</th>
                     <th>Document / Rule</th>
                     <th>Agent Host</th>
                     <th>Risk Profile</th>
-                    <th>Executive Summary</th>
+                    <th>Report Status</th>
+                    <th>Executive Summary & Evidence</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="reportsTbody">
                 {% for rep in reports %}
-                <tr class="report-row" data-severity="{{ rep.risk | lower }}">
+                <tr class="report-row" data-severity="{{ rep.risk | lower }}" data-status="{{ rep.status | lower }}">
                     <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ rep.created_at }}</td>
                     <td style="font-family: var(--font-mono); font-size: 0.82rem;">
                         <strong>{{ rep.doc_id }}</strong><br>
@@ -64,22 +85,59 @@
                     </td>
                     <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ rep.agent_name }}</td>
                     <td><span class="badge badge-{{ rep.risk | lower }}">{{ rep.risk }}</span></td>
-                    <td>{{ rep.summary }}</td>
                     <td>
-                        <div style="display: flex; gap: 8px;">
+                        {% if rep.is_outdated %}
+                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">Outdated</span>
+                        {% elif rep.status == 'Latest' %}
+                        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">Latest</span>
+                        {% elif rep.status == 'New Alert' or not rep.is_generated %}
+                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">New Alert</span>
+                        {% else %}
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">Cached</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if rep.is_outdated %}
+                        <div style="color: #f87171; font-weight: 700; margin-bottom: 4px;">
+                            <i class="fas fa-exclamation-triangle"></i> ⚠ New alert data available. Regenerate Report
+                        </div>
+                        {% endif %}
+                        <div>{{ rep.summary }}</div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            {% if not rep.is_generated or rep.status == 'New Alert' %}
+                            <button onclick="regenerateReport('{{ rep.doc_id }}', this)" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; background: var(--cyan); color: #000; font-weight: 700;" title="Generate Fresh AI Investigation Report">
+                                <i class="fas fa-magic"></i> Generate Report
+                            </button>
+                            {% elif rep.is_outdated %}
+                            <button onclick="regenerateReport('{{ rep.doc_id }}', this)" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; background: var(--crimson-red);" title="Regenerate Report with Latest Evidence">
+                                <i class="fas fa-sync-alt"></i> Regenerate
+                            </button>
                             <a href="/api/report/{{ rep.doc_id }}/pdf" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem;" title="Download PDF Report">
                                 <i class="fas fa-file-pdf"></i> PDF
                             </a>
                             <button onclick="deleteReport('{{ rep.doc_id }}')" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; color: var(--crimson-red); border-color: var(--crimson-red);" title="Delete Report">
                                 <i class="fas fa-trash"></i>
                             </button>
+                            {% else %}
+                            <button onclick="regenerateReport('{{ rep.doc_id }}', this)" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" title="Regenerate Fresh Report">
+                                <i class="fas fa-sync-alt"></i> Regenerate
+                            </button>
+                            <a href="/api/report/{{ rep.doc_id }}/pdf" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem;" title="Download PDF Report">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </a>
+                            <button onclick="deleteReport('{{ rep.doc_id }}')" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; color: var(--crimson-red); border-color: var(--crimson-red);" title="Delete Report">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">
-                        No archived investigation reports found in repository.
+                    <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                        No SIEM alerts or investigation reports found in repository.
                     </td>
                 </tr>
                 {% endfor %}
@@ -94,25 +152,146 @@
 document.addEventListener("DOMContentLoaded", function() {
     const searchInput = document.getElementById("reportSearch");
     const severitySelect = document.getElementById("reportSeverityFilter");
-    const rows = document.querySelectorAll(".report-row");
+    const statusSelect = document.getElementById("reportStatusFilter");
 
     function filterReports() {
-        const query = searchInput.value.toLowerCase().trim();
-        const sev = severitySelect.value.toLowerCase();
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        const sev = severitySelect ? severitySelect.value.toLowerCase() : "all";
+        const stat = statusSelect ? statusSelect.value.toLowerCase() : "all";
+        const rows = document.querySelectorAll(".report-row");
 
         rows.forEach(row => {
             const text = row.innerText.toLowerCase();
             const rowSev = row.dataset.severity || "";
+            const rowStat = row.dataset.status || "";
+
             const matchText = !query || text.includes(query);
             const matchSev = sev === "all" || rowSev.includes(sev);
+            const matchStat = stat === "all" || rowStat.includes(stat);
 
-            row.style.display = (matchText && matchSev) ? "" : "none";
+            row.style.display = (matchText && matchSev && matchStat) ? "" : "none";
         });
     }
 
     if (searchInput) searchInput.addEventListener("input", filterReports);
     if (severitySelect) severitySelect.addEventListener("change", filterReports);
+    if (statusSelect) statusSelect.addEventListener("change", filterReports);
+
+    // Dynamic 10-second AJAX background refresh for Reports Page
+    setInterval(fetchLatestReports, 10000);
 });
+
+function fetchLatestReports() {
+    fetch("/api/reports")
+        .then(res => res.json())
+        .then(data => {
+            if (!data.reports) return;
+            
+            document.getElementById("totalReportsCount").innerText = data.total || data.reports.length;
+            if (data.stats) {
+                if (document.getElementById("kpiLatestCount")) document.getElementById("kpiLatestCount").innerText = data.stats.latest_reports || 0;
+                if (document.getElementById("kpiOutdatedCount")) document.getElementById("kpiOutdatedCount").innerText = data.stats.outdated_reports || 0;
+                if (document.getElementById("kpiLastAlertTs") && data.stats.last_alert_timestamp) {
+                    document.getElementById("kpiLastAlertTs").innerText = data.stats.last_alert_timestamp;
+                }
+            }
+
+            renderReportTable(data.reports);
+        })
+        .catch(err => console.debug("Report sync poll background update error:", err));
+}
+
+function renderReportTable(reports) {
+    const tbody = document.getElementById("reportsTbody");
+    if (!tbody) return;
+
+    if (reports.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">No SIEM alerts or investigation reports found in repository.</td></tr>`;
+        return;
+    }
+
+    const html = reports.map(rep => {
+        const isOutdated = rep.is_outdated;
+        const isGenerated = rep.is_generated !== false;
+        const statusVal = rep.status || (isOutdated ? 'Outdated' : (isGenerated ? 'Cached' : 'New Alert'));
+        
+        let statusBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">Cached</span>`;
+        if (isOutdated) {
+            statusBadge = `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">Outdated</span>`;
+        } else if (statusVal === 'Latest') {
+            statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">Latest</span>`;
+        } else if (statusVal === 'New Alert' || !isGenerated) {
+            statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">New Alert</span>`;
+        }
+
+        const outdatedNotice = isOutdated ? `<div style="color: #f87171; font-weight: 700; margin-bottom: 4px;"><i class="fas fa-exclamation-triangle"></i> ⚠ New alert data available. Regenerate Report</div>` : '';
+
+        let actionBtns = '';
+        if (!isGenerated || statusVal === 'New Alert') {
+            actionBtns = `<button onclick="regenerateReport('${rep.doc_id}', this)" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; background: var(--cyan); color: #000; font-weight: 700;" title="Generate AI Investigation Report"><i class="fas fa-magic"></i> Generate Report</button>`;
+        } else if (isOutdated) {
+            actionBtns = `
+                <button onclick="regenerateReport('${rep.doc_id}', this)" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; background: var(--crimson-red);" title="Regenerate Report with Latest Evidence"><i class="fas fa-sync-alt"></i> Regenerate</button>
+                <a href="/api/report/${rep.doc_id}/pdf" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem;" title="Download PDF Report"><i class="fas fa-file-pdf"></i> PDF</a>
+                <button onclick="deleteReport('${rep.doc_id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; color: var(--crimson-red); border-color: var(--crimson-red);" title="Delete Report"><i class="fas fa-trash"></i></button>
+            `;
+        } else {
+            actionBtns = `
+                <button onclick="regenerateReport('${rep.doc_id}', this)" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" title="Regenerate Fresh Report"><i class="fas fa-sync-alt"></i> Regenerate</button>
+                <a href="/api/report/${rep.doc_id}/pdf" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem;" title="Download PDF Report"><i class="fas fa-file-pdf"></i> PDF</a>
+                <button onclick="deleteReport('${rep.doc_id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; color: var(--crimson-red); border-color: var(--crimson-red);" title="Delete Report"><i class="fas fa-trash"></i></button>
+            `;
+        }
+
+        return `
+        <tr class="report-row" data-severity="${(rep.risk || 'low').toLowerCase()}" data-status="${statusVal.toLowerCase()}">
+            <td style="font-family: var(--font-mono); font-size: 0.82rem;">${rep.created_at}</td>
+            <td style="font-family: var(--font-mono); font-size: 0.82rem;">
+                <strong>${rep.doc_id}</strong><br>
+                <small style="color: var(--text-muted);">Rule #${rep.rule_id}</small>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.82rem;">${rep.agent_name}</td>
+            <td><span class="badge badge-${(rep.risk || 'low').toLowerCase()}">${rep.risk}</span></td>
+            <td>${statusBadge}</td>
+            <td>${outdatedNotice}<div>${rep.summary}</div></td>
+            <td>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    ${actionBtns}
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join("");
+
+    tbody.innerHTML = html;
+}
+
+function syncReportsNow() {
+    fetch("/api/reports/sync", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+            fetchLatestReports();
+        });
+}
+
+function regenerateReport(docId, btnElement) {
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Generating...`;
+    }
+    fetch(`/api/report/${docId}/regenerate`, { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+            fetchLatestReports();
+        })
+        .catch(err => {
+            alert("Failed to generate report.");
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.innerHTML = `<i class="fas fa-magic"></i> Generate Report`;
+            }
+        });
+}
 
 function deleteReport(docId) {
     if (!confirm(`Are you sure you want to delete archived report for ${docId}?`)) return;
@@ -120,7 +299,7 @@ function deleteReport(docId) {
     fetch(`/api/report/${docId}`, { method: 'DELETE' })
         .then(res => res.json())
         .then(data => {
-            window.location.reload();
+            fetchLatestReports();
         });
 }
 </script>

@@ -9,21 +9,31 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
-OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST", os.getenv("INDEXER_HOST", "https://192.168.1.61:9200"))
-OPENSEARCH_USER = os.getenv("OPENSEARCH_USER", os.getenv("INDEXER_USERNAME", "admin"))
-OPENSEARCH_PASS = os.getenv("OPENSEARCH_PASS", os.getenv("INDEXER_PASSWORD", "admin"))
+def refresh_opensearch_client():
+    global client, OPENSEARCH_HOST, OPENSEARCH_USER, OPENSEARCH_PASS
+    OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST", os.getenv("INDEXER_HOST", Config.OPENSEARCH_HOST or "https://127.0.0.1:9200"))
+    OPENSEARCH_USER = os.getenv("OPENSEARCH_USER", os.getenv("INDEXER_USERNAME", Config.OPENSEARCH_USER or "admin"))
+    OPENSEARCH_PASS = os.getenv("OPENSEARCH_PASS", os.getenv("INDEXER_PASSWORD", Config.OPENSEARCH_PASS or "SecretPassword"))
 
-try:
-    client = OpenSearch(
-        hosts=[OPENSEARCH_HOST],
-        http_auth=(OPENSEARCH_USER, OPENSEARCH_PASS),
-        verify_certs=False,
-        ssl_show_warn=False,
-        timeout=5,
-    )
-except Exception as e:
-    logger.warning("OpenSearch client initialization failed: %s.", str(e))
-    client = None
+    try:
+        client = OpenSearch(
+            hosts=[OPENSEARCH_HOST],
+            http_auth=(OPENSEARCH_USER, OPENSEARCH_PASS),
+            verify_certs=False,
+            ssl_show_warn=False,
+            timeout=5,
+        )
+        logger.info("OpenSearch client re-initialized with target host: %s", OPENSEARCH_HOST)
+        return client
+    except Exception as e:
+        logger.warning("OpenSearch client refresh failed for host %s: %s", OPENSEARCH_HOST, str(e))
+        client = None
+        return None
+
+# Initial Client Instantiation
+client = None
+refresh_opensearch_client()
+
 
 
 def get_latest_alerts(size: int = 100) -> list:
@@ -32,6 +42,10 @@ def get_latest_alerts(size: int = 100) -> list:
     Strictly read-only: never modifies, generates, or seeds data.
     Only uses static demo alerts if DEMO_MODE is explicitly enabled.
     """
+    global client
+    if client is None:
+        refresh_opensearch_client()
+
     if client is None:
         if Config.DEMO_MODE:
             logger.info("OpenSearch client offline. Demo Mode active: Returning static demo alerts.")
@@ -58,7 +72,16 @@ def get_latest_alerts(size: int = 100) -> list:
             return []
         return hits
     except Exception as e:
-        logger.warning("OpenSearch query failed (%s).", str(e))
+        logger.warning("OpenSearch query failed (%s). Attempting client refresh...", str(e))
+        refresh_opensearch_client()
+        if client:
+            try:
+                response = client.search(index="wazuh-alerts-*", body=query)
+                hits = response.get("hits", {}).get("hits", [])
+                if hits:
+                    return hits
+            except Exception:
+                pass
         if Config.DEMO_MODE:
             return get_demo_alerts()[:size]
         return []

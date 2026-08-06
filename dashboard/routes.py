@@ -115,8 +115,52 @@ def alert_details(doc_id):
 @dashboard.route("/api/reports", methods=["GET"])
 @login_required
 def api_list_reports():
-    reports_list = list_all_cached_reports()
-    return jsonify({"reports": reports_list, "total": len(reports_list)})
+    from report_sync import get_report_sync, ReportCacheManager
+    cache_mgr = ReportCacheManager()
+    sync_service = get_report_sync()
+    
+    reports_list = cache_mgr.get_all_reports_enhanced()
+    stats = sync_service.stats if sync_service else {}
+
+    return jsonify({
+        "reports": reports_list,
+        "total": len(reports_list),
+        "stats": stats,
+        "last_sync_time": sync_service.last_sync_time if sync_service else None
+    })
+
+
+@dashboard.route("/api/reports/sync", methods=["POST", "GET"])
+@login_required
+def api_sync_reports():
+    from report_sync import get_report_sync
+    sync_service = get_report_sync()
+    stats = sync_service.sync_now() if sync_service else {}
+    from report_sync import ReportCacheManager
+    reports_list = ReportCacheManager().get_all_reports_enhanced()
+    return jsonify({
+        "status": "success",
+        "stats": stats,
+        "reports": reports_list,
+        "message": "Report synchronization executed successfully."
+    })
+
+
+@dashboard.route("/api/report/<id>/regenerate", methods=["POST", "GET"])
+@dashboard.route("/api/report/<id>/generate", methods=["POST", "GET"])
+@login_required
+def api_regenerate_report(id):
+    from report_sync import ReportGenerator
+    generator = ReportGenerator()
+    report_data = generator.generate_or_get_report(id, force_regenerate=True)
+    if not report_data:
+        return jsonify({"error": f"Failed to generate report for alert {id}"}), 404
+    return jsonify({
+        "status": "success",
+        "doc_id": id,
+        "report": report_data,
+        "message": "Fresh report metadata generated successfully."
+    })
 
 
 @dashboard.route("/api/report/<id>", methods=["GET", "DELETE"])
@@ -126,7 +170,8 @@ def api_manage_report(id):
         success = delete_cached_report(id)
         return jsonify({"status": "deleted" if success else "not_found", "doc_id": id})
 
-    report_data = get_cached_report(id)
+    from report_sync import ReportCacheManager
+    report_data = ReportCacheManager().get_report_with_metadata(id)
     if not report_data:
         return jsonify({"error": "Report not found in cache"}), 404
     return jsonify(report_data)
@@ -215,6 +260,45 @@ def api_test_connection():
     })
 
 
+# NETWORK AUTO-RECOVERY API SUITE
+@dashboard.route("/api/network/status", methods=["GET"])
+@login_required
+def api_network_status():
+    from network import get_network_monitor
+    status = get_network_monitor().get_status()
+    return jsonify(status)
+
+
+@dashboard.route("/api/network/toggle-auto-recovery", methods=["POST"])
+@login_required
+def api_toggle_auto_recovery():
+    from network import get_network_monitor
+    data = request.get_json() or {}
+    enabled = data.get("enabled", True)
+    monitor = get_network_monitor()
+    new_state = monitor.set_auto_recovery(enabled)
+    return jsonify({
+        "status": "success",
+        "auto_recovery_enabled": new_state,
+        "message": f"Auto Network Recovery has been {'enabled' if new_state else 'disabled'}."
+    })
+
+
+@dashboard.route("/api/network/rescan", methods=["POST"])
+@login_required
+def api_network_rescan():
+    from network import get_network_monitor
+    monitor = get_network_monitor()
+    updated = monitor.trigger_rescan_and_recovery(force=True)
+    status = monitor.get_status()
+    return jsonify({
+        "status": "success" if updated else "no_change",
+        "updated": updated,
+        "network_status": status,
+        "message": "Network rescan completed successfully." if updated else "Network rescan completed. Configuration already up to date."
+    })
+
+
 # Page Views
 @dashboard.route("/threat-intel")
 @login_required
@@ -231,11 +315,24 @@ def mitre_matrix():
 @dashboard.route("/reports")
 @login_required
 def reports():
-    saved_reports = list_all_cached_reports()
-    return render_template("reports.html", reports=saved_reports)
+    from report_sync import get_report_sync, ReportCacheManager
+    cache_mgr = ReportCacheManager()
+    sync_service = get_report_sync()
+    
+    saved_reports = cache_mgr.get_all_reports_enhanced()
+    stats = sync_service.stats if sync_service else {}
+    last_sync = sync_service.last_sync_time if sync_service else None
+
+    return render_template(
+        "reports.html",
+        reports=saved_reports,
+        stats=stats,
+        last_sync=last_sync
+    )
 
 
 @dashboard.route("/settings")
 @login_required
 def settings():
     return render_template("settings.html")
+
