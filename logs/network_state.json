@@ -1,8 +1,0 @@
-{
-  "auto_recovery_enabled": true,
-  "last_known_ip": "10.102.134.181",
-  "last_ip_change": "2026-08-06 09:39:46",
-  "last_health_check": "2026-08-06 09:39:46",
-  "last_health_status": "Degraded",
-  "last_status_message": "Initialized"
-}
